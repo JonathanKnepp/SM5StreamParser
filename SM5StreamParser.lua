@@ -75,7 +75,6 @@ function getStreamMeasures(measuresString)
 	do
 		-- If we hit a comma or a semi-colon, then we've hit the end of our measure
 		if(line:match("^[,;]%s*")) then
-				for k,v in pairs(measureNotes) do print(k,v) end
 			-- Does this measure contain a stream of notes based on our notesPerMeasure global?
 			if(#measureNotes >= notesPerMeasure) then
 				local isStream = true

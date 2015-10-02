@@ -10,19 +10,8 @@ measureSequenceThreshold = 4
 --maxBreakPerMeasure = 2
 
 -- Utility function to replace regex special characters with escaped characters
-function regexEncode(var)
-	return (var:gsub('%%', '%%%')
-           :gsub('%^', '%%^')
-           :gsub('%$', '%%$')
-           :gsub('%(', '%%(')
-           :gsub('%)', '%%)')
-           :gsub('%.', '%%.')
-           :gsub('%[', '%%[')
-           :gsub('%]', '%%]')
-           :gsub('%*', '%%*')
-           :gsub('%+', '%%+')
-           :gsub('%-', '%%-')
-           :gsub('%?', '%%?'))
+function regexEncode(var) 
+	return (var:gsub('%%', '%%%'):gsub('%^', '%%^'):gsub('%$', '%%$'):gsub('%(', '%%('):gsub('%)', '%%)'):gsub('%.', '%%.'):gsub('%[', '%%['):gsub('%]', '%%]'):gsub('%*', '%%*'):gsub('%+', '%%+'):gsub('%-', '%%-'):gsub('%?', '%%?'))
 end
 
 -- Parse the measures section out of our sim file
@@ -41,12 +30,8 @@ function getChartMeasuresString(simfilePath, gameType, gameDifficulty)
 		-- Find the section of the sim file for our song difficulty and game type
 		measuresString = string.match(simfileContents, "#NOTES[^;]*"..regexEncode(gameType).."[^;]*"..regexEncode(gameDifficulty).."[^;]*;")
 		
-		-- remove header garbage
-		measuresString = measuresString:gsub("#NOTES:.*:","")
-		-- remove comments
-		measuresString = measuresString:gsub("//[^\n]*","")
-		-- remove leading white space
-		measuresString = measuresString:gsub("[ ]*","")
+		-- remove header garbage, remove comments, remove leading whitespace
+		measuresString = measuresString:gsub("#NOTES:.*:",""):gsub("//[^\n]*",""):gsub("[ ]*","")
 	end
 	
 	return measuresString
@@ -56,8 +41,7 @@ end
 function getStreamMeasures(measuresString)	
 	-- Make our stream notes array into a string for regex
 	local streamNotesString = ""
-	for k, v in pairs(streamNotes) 
-	do 
+	for k, v in pairs(streamNotes) do 
 		streamNotesString = streamNotesString .. v
 	end
 
@@ -143,27 +127,18 @@ function getStreamSequences(streamMeasures)
 	return streamSequences
 end
 
--- Proof of concept? Not sure the easiest way to execute/retrieve data for stepmania from this script
-
--- Where is the sim file located?
-local simfilePath = ".\\Electric Angel.sm"
--- Single or Doubles?
+local simfilePath = ".\\9000miles.sm"
 local gameType = "dance-single"
--- Basic, Standard, Expert, Challenge?
 local gameDifficulty = "Challenge"
 
 measuresString = getChartMeasuresString(simfilePath, gameType, gameDifficulty)
 streamMeasures = getStreamMeasures(measuresString)
 streamSequences = getStreamSequences(streamMeasures)
 
--- Display which measures are counted as streams
 for k,v in pairs(streamMeasures) do
 	print("Measure "..v.." has a stream.")
 end
-
 print("-------------------------------------------")
-
--- Display the streams
 for k,v in pairs(streamSequences) do
 	print("Stream position: "..v.streamStart .. " / " .. v.streamEnd)
 end

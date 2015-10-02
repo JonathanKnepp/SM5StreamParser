@@ -7,6 +7,8 @@ notesPerMeasure = 16
 -- How many sequential measures of streaming indicates a stream? 
 measureSequenceThreshold = 4
 
+--maxBreakPerMeasure = 2
+
 -- Utility function to replace regex special characters with escaped characters
 function regexEncode(var)
 	return (var:gsub('%%', '%%%')
@@ -79,10 +81,13 @@ function getStreamMeasures(measuresString)
 			if(#measureNotes >= notesPerMeasure) then
 				local isStream = true
 				
+				-- What can the gap be in between notes?
+				local noteGapThreshold = measureTiming / notesPerMeasure
+				
 				-- Loop through our notes and see if they're placed correctly to be considered a stream (every 8th, every 16th, etc.)
-				for i=#measureNotes,1,((#measureNotes / notesPerMeasure) * -1) do
-					-- If there isn't a note in the correct placement, then it's not a stream
-					if(measureNotes[i] == nil) then
+				for i=1,(#measureNotes - 1),1 do
+					-- Is the gap between this note and the next note greater than what's allowed?
+					if((measureNotes[i+1] - measureNotes[i]) > noteGapThreshold) then
 						isStream = false
 					end
 				end
@@ -141,7 +146,7 @@ end
 -- Proof of concept? Not sure the easiest way to execute/retrieve data for stepmania from this script
 
 -- Where is the sim file located?
-local simfilePath = ".\\9000miles.sm"
+local simfilePath = ".\\Electric Angel.sm"
 -- Single or Doubles?
 local gameType = "dance-single"
 -- Basic, Standard, Expert, Challenge?

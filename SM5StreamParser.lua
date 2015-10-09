@@ -1,13 +1,24 @@
 -- GLOBAL DYNAMIC VARIABLES
-
 -- Which note types are counted as part of the stream?
 streamNotes = {1,2,4}
--- How many notes per measure to indicate a stream? (16ths)
-notesPerMeasure = 16
--- How many sequential measures of streaming indicates a stream? 
-measureSequenceThreshold = 4
 
---maxBreakPerMeasure = 2
+--REMOVE--
+function getSimfileString(simfilePath)
+	-- Open the file
+	local file, errorString = io.open(simfilePath, "r"), simfileString
+	
+	if not file then
+		-- Error opening file
+		print("File error: " .. errorString)
+	else
+		simfileString = file:read("*a")
+	end
+		
+	return simfileString
+end
+local simfilePath = ".\\Electric Angel.ssc"
+simfileString = getSimfileString(simfilePath)
+--/REMOVE--
 
 -- Utility function to replace regex special characters with escaped characters
 function regexEncode(var) 
@@ -15,30 +26,35 @@ function regexEncode(var)
 end
 
 -- Parse the measures section out of our sim file
-function getChartMeasuresString(simfilePath, gameType, gameDifficulty)
-	-- Open the file
-	local file, errorString = io.open(simfilePath, "r")
+function getSimfileChartString(simfileString, gameType, gameDifficulty)
 	local measuresString = nil
 
-	if not file then
-		-- Error opening file
-		print("File error: " .. errorString)
+	if(simfileString:match("#NOTEDATA")) then
+		-- SSC File
+		-- Loop through each chart in the SSC file
+		for chart in simfileString:gmatch("#NOTEDATA.-#NOTES:[^;]*") do
+			-- Find the chart that matches our difficulty and game type
+			if(chart:match("#STEPSTYPE:"..regexEncode(gameType)) and chart:match("#DIFFICULTY:"..regexEncode(gameDifficulty))) then
+				--Find just the notes and remove comments
+				measuresString = chart:match("#NOTES:\n([^;]*)\n$"):gsub("\\[^\n]*","")
+			end
+		end
 	else
-		-- Read lines from file
-		local simfileContents = file:read("*a")
-		
-		-- Find the section of the sim file for our song difficulty and game type
-		measuresString = string.match(simfileContents, "#NOTES[^;]*"..regexEncode(gameType).."[^;]*"..regexEncode(gameDifficulty).."[^;]*;")
-		
-		-- remove header garbage, remove comments, remove leading whitespace
-		measuresString = measuresString:gsub("#NOTES:.*:",""):gsub("//[^\n]*",""):gsub("[ ]*","")
+		-- SM FILE
+		-- Loop through each chart in the SM file
+		for chart in simfileString:gmatch("#NOTES[^;]*") do
+			if(chart:match(regexEncode(gameType)..":") and chart:match(regexEncode(gameDifficulty)..":")) then
+				-- Find just the notes and remove comments
+				measuresString = chart:match("#NOTES:.*:\n(.*)\n$"):gsub("//[^\n]*","")
+			end
+		end
 	end
 	
 	return measuresString
 end
 
 -- Figure out which measures are considered a stream of notes
-function getStreamMeasures(measuresString)	
+function getStreamMeasures(measuresString, notesPerMeasure)	
 	-- Make our stream notes array into a string for regex
 	local streamNotesString = ""
 	for k, v in pairs(streamNotes) do 
@@ -65,7 +81,7 @@ function getStreamMeasures(measuresString)
 			if(#measureNotes >= notesPerMeasure) then
 				local isStream = true
 				
-				-- What can the gap be in between notes?
+				-- What can the gap be between notes?
 				local noteGapThreshold = measureTiming / notesPerMeasure
 				
 				-- Loop through our notes and see if they're placed correctly to be considered a stream (every 8th, every 16th, etc.)
@@ -101,7 +117,7 @@ function getStreamMeasures(measuresString)
 end
 
 -- Get the start/end of each stream sequence in our table of measures
-function getStreamSequences(streamMeasures)
+function getStreamSequences(streamMeasures, measureSequenceThreshold)
 	local streamSequences = {}
 
 	local counter = 1
@@ -127,18 +143,22 @@ function getStreamSequences(streamMeasures)
 	return streamSequences
 end
 
-local simfilePath = ".\\9000miles.sm"
-local gameType = "dance-single"
-local gameDifficulty = "Challenge"
-
-measuresString = getChartMeasuresString(simfilePath, gameType, gameDifficulty)
-streamMeasures = getStreamMeasures(measuresString)
-streamSequences = getStreamSequences(streamMeasures)
-
-for k,v in pairs(streamMeasures) do
-	print("Measure "..v.." has a stream.")
+function getStreams(simfileString, gameType, gameDifficulty, notesPerMeasure, measureSequenceThreshold)
+	-- Parse out just the contents of the notes
+	chartString = getSimfileChartString(simfileString, gameType, gameDifficulty)
+	-- Which measures have enough notes to be considered as part of a stream?
+	streamMeasures = getStreamMeasures(chartString, notesPerMeasure)
+	for k,v in pairs(streamMeasures) do
+		print(v)
+	end
+	-- Which sequences of measures are considered a stream?
+	return (getStreamSequences(streamMeasures, measureSequenceThreshold))
 end
+
+streamSequences = getStreams(simfileString, "dance-single", "Challenge", 12, 4)
+
 print("-------------------------------------------")
 for k,v in pairs(streamSequences) do
 	print("Stream position: "..v.streamStart .. " / " .. v.streamEnd)
 end
+print("-------------------------------------------")
